@@ -10,6 +10,7 @@ type Summary = {
   memo_in_count: number; memo_in_value: number; memo_in_vendors: number
   accounts: number; customers: number; suppliers: number
   open_invoices: number | null; out_on_memo: number | null; unpaid_purchases: number | null
+  open_invoices_count: number; invoices_overdue: number; unpaid_purchases_count: number; sales_month_last_year: number
   out_on_memo_count: number; out_on_memo_value: number; open_memos: number; memos_overdue: number; memo_app_count: number
   stock_count: number; stock_carats: number; stock_cost: number; stock_memo_in: number; inbox: number
   sales_month: number | null
@@ -20,16 +21,16 @@ const QUICK: { label: string; icon: string; to?: string; stage?: number }[] = [
   { label: 'New account', icon: 'users', to: 'accounts/new' },
   { label: 'Find account', icon: 'search', to: 'accounts' },
   { label: 'New memo', icon: 'memo', to: 'memos/new' },
-  { label: 'New invoice', icon: 'invoice', stage: 4 },
+  { label: 'New invoice', icon: 'invoice', to: 'invoices/new' },
   { label: 'New memo-in', icon: 'box', to: 'memo-in/new' },
-  { label: 'New purchase', icon: 'cart', stage: 5 },
-  { label: 'Receive payment', icon: 'cash', stage: 4 },
+  { label: 'New purchase', icon: 'cart', to: 'purchases/new' },
+  { label: 'Receive payment', icon: 'cash', to: 'payments-in/new' },
   { label: 'Memo quick return', icon: 'undo', to: 'memo-quick-return' },
 ]
 
 const ACTION_WORD: Record<string, string> = {
   CREATE: 'added', EDIT: 'edited', NOTE: 'noted on', ACTIVATE: 'reactivated', DEACTIVATE: 'deactivated', DELETE: 'deleted',
-  IN: 'received memo stone', RETURN: 'returned', UNDO_RETURN: 'undid return of', MEMO: 'sent on memo', MIX: 'mixed', MOUNT: 'mounted', UNMOUNT: 'unmounted', VOID: 'voided',
+  IN: 'received memo stone', RETURN: 'returned', UNDO_RETURN: 'undid return of', MEMO: 'sent on memo', SOLD: 'sold', BOUGHT: 'bought', COST: 'added cost to', PARTNER: 'made partnership', SETTLE: 'settled with', CREDIT: 'credited', APPLY: 'applied', NSF: 'marked bounced', MIX: 'mixed', MOUNT: 'mounted', UNMOUNT: 'unmounted', VOID: 'voided',
 }
 
 export default function Home() {
@@ -51,9 +52,10 @@ export default function Home() {
     ? [
         { label: 'Memo-in (suppliers’ goods)', value: money0(s.memo_in_value), note: `${plural(s.memo_in_count, 'item')} · ${plural(s.memo_in_vendors, 'supplier')}`, to: 'memo-in' },
         { label: 'Accounts', value: String(s.accounts), note: `${plural(s.customers, 'customer')} · ${plural(s.suppliers, 'supplier')}`, to: 'accounts' },
-        { label: 'Open invoices', value: '—', note: 'Stage 4', pending: true },
+        { label: 'Open invoices', value: money0(s.open_invoices ?? 0), note: `${plural(s.open_invoices_count, 'invoice')}${s.invoices_overdue ? ` · ${s.invoices_overdue} overdue` : ''}`, to: 'invoices' },
         { label: 'Out on memo', value: money0(s.out_on_memo_value), note: `${plural(s.open_memos, 'open memo')}${s.memos_overdue ? ` · ${s.memos_overdue} overdue` : ''}`, to: 'memos' },
-        { label: 'Unpaid vendor bills', value: '—', note: 'Stage 5', pending: true },
+        { label: 'Unpaid vendor bills', value: money0(s.unpaid_purchases ?? 0), note: plural(s.unpaid_purchases_count, 'bill'), to: 'purchases' },
+        { label: 'Sales this month', value: money0(s.sales_month ?? 0), note: `same month last year ${money0(s.sales_month_last_year)}`, to: 'invoices' },
         { label: 'Inventory on hand (owned)', value: money0(s.stock_cost), note: `${plural(s.stock_count, 'stone')} · ${Number(s.stock_carats).toFixed(2)} ct${s.stock_memo_in ? ` · +${s.stock_memo_in} memo-in` : ''}`, to: 'stock' },
         { label: 'Inbox', value: String(s.inbox), note: s.inbox ? 'photos waiting for review' : 'nothing waiting', to: 'inbox' },
       ]
@@ -98,8 +100,8 @@ export default function Home() {
           ) : (
             <ul className="feed">
               {feed.map((f, i) => (
-                <li key={i} style={['account', 'item', 'doc'].includes(f.entity) && f.entity_id ? { cursor: 'pointer' } : undefined}
-                    onClick={() => f.entity_id && (f.entity === 'account' ? go('accounts/' + f.entity_id) : f.entity === 'item' ? go('stock/' + f.entity_id) : f.entity === 'doc' && go('docs/' + f.entity_id))}>
+                <li key={i} style={['account', 'item', 'doc', 'ledger'].includes(f.entity) && f.entity_id ? { cursor: 'pointer' } : undefined}
+                    onClick={() => f.entity_id && (f.entity === 'account' ? go('accounts/' + f.entity_id) : f.entity === 'item' ? go('stock/' + f.entity_id) : (f.entity === 'doc' ? go('docs/' + f.entity_id) : f.entity === 'ledger' ? go('invoices/' + f.entity_id) : null))}>
                   <span className="dot">{personName(f.actor, team).slice(0, 2).toUpperCase()}</span>
                   <div>
                     <div className="what">{personName(f.actor, team)} {ACTION_WORD[f.action] ?? f.action.toLowerCase()} {f.ref}</div>
@@ -118,8 +120,8 @@ export default function Home() {
               <li><b style={{ color: 'var(--text)' }}>Foundation &amp; accounts</b> · live</li>
               <li><b style={{ color: 'var(--text)' }}>Inventory</b> · live</li>
               <li><b style={{ color: 'var(--text)' }}>Memos &amp; memo-in</b> · live (with parcels, mixing, jewelry)</li>
-              <li>Sales &amp; payments</li>
-              <li>Purchasing &amp; vendor bills</li>
+              <li><b style={{ color: 'var(--text)' }}>Sales &amp; payments</b> · live</li>
+              <li><b style={{ color: 'var(--text)' }}>Purchasing, vendor bills, partnership</b> · live</li>
               <li>Matching diamonds &amp; gemstones</li>
               <li>Reports &amp; profit (owner)</li>
             </ol>

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { supabase, errText, type Me } from './lib/supabase'
 import { useRoute } from './lib/router'
-import { AppProvider, Icon, Logo, useTheme } from './components/ui'
+import { AppProvider, Icon, useTheme } from './components/ui'
 import SignIn from './pages/SignIn'
 import Home from './pages/Home'
 import Accounts from './pages/Accounts'
@@ -25,6 +25,11 @@ import KindList from './pages/KindList'
 import ItemForm from './pages/ItemForm'
 import { MixList, MixNew } from './pages/Mixing'
 import Settings from './pages/Settings'
+import { LedgerList, PaymentList } from './pages/LedgerList'
+import LedgerView from './pages/LedgerView'
+import InvoiceNew from './pages/InvoiceNew'
+import PurchaseNew from './pages/PurchaseNew'
+import { PaymentNew, PaymentView } from './pages/PaymentPages'
 
 export type NavItem = { path: string; label: string; stage?: number; owner?: boolean }
 export const NAV: { group: string; items: NavItem[] }[] = [
@@ -46,17 +51,16 @@ export const NAV: { group: string; items: NavItem[] }[] = [
     items: [
       { path: 'memos', label: 'Memos' },
       { path: 'memo-quick-return', label: 'Memo quick return' },
-      { path: 'm/invoices', label: 'Invoices', stage: 4 },
-      { path: 'm/customer-payments', label: 'Customer payments', stage: 4 },
+      { path: 'invoices', label: 'Invoices' },
+      { path: 'payments-in', label: 'Customer payments' },
     ],
   },
   {
     group: 'Purchasing',
     items: [
       { path: 'memo-in', label: 'Memo-in' },
-      { path: 'm/purchases', label: 'Purchases', stage: 5 },
-      { path: 'm/vendor-bills', label: 'Vendor bills', stage: 5 },
-      { path: 'm/supplier-payments', label: 'Supplier payments', stage: 5 },
+      { path: 'purchases', label: 'Purchases & vendor bills' },
+      { path: 'payments-out', label: 'Supplier payments' },
     ],
   },
   { group: 'Owner', items: [{ path: 'm/reports', label: 'Reports & profit', stage: 7, owner: true }] },
@@ -117,31 +121,43 @@ function Shell({ me }: { me: Me }) {
 
   let page
   if (route[0] === 'accounts' && route[1] === 'new') page = <AccountForm />
-  else if (route[0] === 'accounts' && route[1] && route[2] === 'edit') page = <AccountForm id={route[1]} />
-  else if (route[0] === 'accounts' && route[1]) page = <AccountView id={route[1]} />
+  else if (route[0] === 'accounts' && route[1] && route[2] === 'edit') page = <AccountForm key={path} id={route[1]} />
+  else if (route[0] === 'accounts' && route[1]) page = <AccountView key={path} id={route[1]} />
   else if (route[0] === 'accounts') page = <Accounts />
   else if (route[0] === 'team') page = <Team />
   else if (route[0] === 'stock' && route[1] === 'new') page = <StockForm />
-  else if (route[0] === 'stock' && route[1] && route[2] === 'edit') page = <StockForm id={route[1]} />
-  else if (route[0] === 'stock' && route[1]) page = <StockView id={route[1]} />
+  else if (route[0] === 'stock' && route[1] && route[2] === 'edit') page = <StockForm key={path} id={route[1]} />
+  else if (route[0] === 'stock' && route[1]) page = <StockView key={path} id={route[1]} />
   else if (route[0] === 'stock') page = <Stock />
-  else if (route[0] === 'inbox' && route[1]) page = <IntakeReview id={route[1]} />
+  else if (route[0] === 'inbox' && route[1]) page = <IntakeReview key={path} id={route[1]} />
   else if (route[0] === 'inbox') page = <Inbox />
   else if (route[0] === 'memos' && route[1] === 'new') page = <MemoNew />
-  else if (route[0] === 'memos' && route[1]) page = <DocView id={route[1]} />
-  else if (route[0] === 'memos') page = <DocList kind="memo" />
+  else if (route[0] === 'memos' && route[1]) page = <DocView key={path} id={route[1]} />
+  else if (route[0] === 'memos') page = <DocList key="m" kind="memo" />
   else if (route[0] === 'memo-in' && route[1] === 'new') page = <MemoInNew />
-  else if (route[0] === 'memo-in' && route[1]) page = <DocView id={route[1]} />
-  else if (route[0] === 'memo-in') page = <DocList kind="memo_in" />
-  else if (route[0] === 'docs' && route[1]) page = <DocView id={route[1]} />
+  else if (route[0] === 'memo-in' && route[1]) page = <DocView key={path} id={route[1]} />
+  else if (route[0] === 'memo-in') page = <DocList key="mi" kind="memo_in" />
+  else if (route[0] === 'docs' && route[1]) page = <DocView key={path} id={route[1]} />
   else if (route[0] === 'memo-quick-return') page = <QuickReturn />
   else if (route[0] === 'parcels' && route[1] === 'new') page = <ItemForm kind="parcel" />
-  else if (route[0] === 'parcels') page = <KindList kind="parcel" />
+  else if (route[0] === 'parcels') page = <KindList key="p" kind="parcel" />
   else if (route[0] === 'jewelry' && route[1] === 'new') page = <ItemForm kind="jewelry" />
-  else if (route[0] === 'jewelry') page = <KindList kind="jewelry" />
+  else if (route[0] === 'jewelry') page = <KindList key="j" kind="jewelry" />
   else if (route[0] === 'parcel-mixing' && route[1] === 'new') page = <MixNew />
   else if (route[0] === 'parcel-mixing') page = <MixList />
   else if (route[0] === 'settings') page = <Settings />
+  else if (route[0] === 'invoices' && route[1] === 'new') page = <InvoiceNew />
+  else if (route[0] === 'invoices' && route[1]) page = <LedgerView key={path} id={route[1]} />
+  else if (route[0] === 'invoices') page = <LedgerList key="inv" kind="invoice" />
+  else if (route[0] === 'purchases' && route[1] === 'new') page = <PurchaseNew />
+  else if (route[0] === 'purchases' && route[1]) page = <LedgerView key={path} id={route[1]} />
+  else if (route[0] === 'purchases') page = <LedgerList key="pur" kind="purchase" />
+  else if (route[0] === 'payments-in' && route[1] === 'new') page = <PaymentNew key="in" kind="in" />
+  else if (route[0] === 'payments-in' && route[1]) page = <PaymentView key={path} id={route[1]} />
+  else if (route[0] === 'payments-in') page = <PaymentList key="pin" kind="in" />
+  else if (route[0] === 'payments-out' && route[1] === 'new') page = <PaymentNew key="out" kind="out" />
+  else if (route[0] === 'payments-out' && route[1]) page = <PaymentView key={path} id={route[1]} />
+  else if (route[0] === 'payments-out') page = <PaymentList key="pout" kind="out" />
   else if (route[0] === 'm') {
     const item = NAV.flatMap((g) => g.items).find((i) => i.path === path)
     page = <Soon label={item?.label ?? 'This module'} stage={item?.stage} />
@@ -153,8 +169,7 @@ function Shell({ me }: { me: Me }) {
     <div className="shell">
       <aside className={'side' + (open ? ' open' : '')} onClick={(e) => { if (e.target === e.currentTarget) setOpen(false) }}>
         <a className="brand" href="#/">
-          <Logo />
-          <div><div className="brand-name">TD DIAMONDS</div><div className="brand-sub">STOCK &amp; TRADE</div></div>
+          <img src="./logo-negative.png" alt="TD Diamonds" style={{ width: 132, display: 'block', margin: '4px auto 0' }} />
         </a>
         <nav className="nav">
           {NAV.map((g) => {
@@ -186,8 +201,7 @@ function Shell({ me }: { me: Me }) {
       <div>
         <div className="topbar">
           <button onClick={() => setOpen(true)} aria-label="Menu"><Icon name="menu" size={22} /></button>
-          <Logo size={24} />
-          <span className="brand-name" style={{ fontSize: 17 }}>TD DIAMONDS</span>
+          <img src="./mark-negative.png" alt="TD Diamonds" style={{ height: 30 }} />
         </div>
         <main className="main">{page}</main>
       </div>

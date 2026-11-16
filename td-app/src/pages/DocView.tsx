@@ -145,6 +145,8 @@ export default function DocView({ id }: { id: string }) {
         {canReturn && chosen.length > 0 && (
           <div className="card-pad row" style={{ borderTop: '1px solid var(--line)', justifyContent: 'flex-end' }}>
             <label className="f">Return date<input className="input" type="date" value={retDate} onChange={(e) => setRetDate(e.target.value)} /></label>
+            {d.kind === 'memo' && <a className="btn" style={{ alignSelf: 'flex-end' }} href={`#/invoices/new?memo=${d.id}&lines=${chosen.map(([k]) => k).join(',')}`}>Invoice {chosen.length}</a>}
+            {d.kind === 'memo_in' && <a className="btn" style={{ alignSelf: 'flex-end' }} href={`#/purchases/new?memo_in=${d.id}&lines=${chosen.map(([k]) => k).join(',')}`}>Buy {chosen.length}</a>}
             <button className="btn primary" style={{ alignSelf: 'flex-end' }} disabled={busy} onClick={doReturn}>
               {busy ? 'Saving…' : `${d.kind === 'memo' ? 'Returned to TD' : 'Return to supplier'}: ${chosen.length} line${chosen.length === 1 ? '' : 's'}`}
             </button>

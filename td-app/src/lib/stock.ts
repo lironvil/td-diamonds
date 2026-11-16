@@ -15,7 +15,7 @@ export type Item = {
   pcs: number; memo_pcs: number; memo_ct: number; color_to: string; clarity_to: string; size_cat: string
   title: string; jewelry_type: string; style_no: string; metal: string; metal_wt: number | null; ring_size: string
   side_pcs: number | null; side_ct: number | null; metal_cost: number | null; labor_cost: number | null; stones_cost: number | null
-  center_id: string | null; mounted_in: string | null
+  center_id: string | null; mounted_in: string | null; partner_id: string | null; partner_share: number | null
   created_by: string; created_at: string; updated_by: string | null; updated_at: string | null
 }
 export type Intake = {

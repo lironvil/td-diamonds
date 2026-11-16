@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import { supabase, errText } from '../lib/supabase'
-import { Logo } from '../components/ui'
 
 export default function SignIn() {
   const [email, setEmail] = useState('')
@@ -28,8 +27,8 @@ export default function SignIn() {
     <div className="signin">
       <form className="box" onSubmit={submit}>
         <div className="logo">
-          <div style={{ display: 'inline-grid', placeItems: 'center', width: 56, height: 56, borderRadius: 14, background: '#221F1F', marginBottom: 12 }}><Logo size={36} /></div>
-          <div className="brand-name">TD DIAMONDS</div>
+          <img className="logo-light" src="./logo-color.png" alt="TD Diamonds" style={{ width: 190, margin: '0 auto 14px' }} />
+          <img className="logo-dark" src="./logo-negative.png" alt="TD Diamonds" style={{ width: 190, margin: '0 auto 14px' }} />
           <div className="muted small" style={{ marginTop: 4 }}>Sign in with your TD Memo login</div>
         </div>
         {msg && <div className={'alert' + (msg.ok ? ' ok' : '')}>{msg.text}</div>}

@@ -6,11 +6,12 @@ import { Icon, useApp } from '../components/ui'
 import { describe, fmtPct, rapPct, signedUrl, statusLabel, uploadFiles, type Item } from '../lib/stock'
 import { DOC_TITLE, itemLabel, type Doc, type DocLine } from '../lib/docs'
 import { ItemPicker } from '../components/Pickers'
+import PartnerPanel from '../components/PartnerPanel'
 import type { LogRow } from '../lib/types'
 
 const ACTION: Record<string, string> = {
   CREATE: 'added', EDIT: 'edited', HOLD: 'held', RELEASE: 'released hold', ARCHIVE: 'archived', RESTORE: 'restored', FILES: 'files',
-  MEMO: 'memo out', RETURN: 'returned', MIX: 'mixed', MOUNT: 'mounted', UNMOUNT: 'unmounted',
+  MEMO: 'memo out', RETURN: 'returned', MIX: 'mixed', MOUNT: 'mounted', UNMOUNT: 'unmounted', SOLD: 'sold', BOUGHT: 'bought', COST: 'added cost', PARTNER: 'partnership',
 }
 
 export default function StockView({ id }: { id: string }) {
@@ -91,6 +92,7 @@ export default function StockView({ id }: { id: string }) {
             {i.cert_no && <span className="num">{i.lab} {i.cert_no}</span>}
             <span className={'badge' + (i.status === 'available' && !i.held_for ? '' : ' grey')}>{statusLabel(i)}</span>
             <span className="badge grey">{i.ownership === 'memo_in' ? 'Memo-in' : 'Owned'}</span>
+            {i.partner_id && <span className="badge partner">Partnership {100 - Number(i.partner_share)}/{i.partner_share}</span>}
             {i.mounted_in && linked[i.mounted_in] && <span className="small">Mounted in <a href={'#/stock/' + i.mounted_in}>#{linked[i.mounted_in].stock_no}</a></span>}
             {i.held_for && <span className="muted small">Held for <b>{i.held_for}</b>{i.held_until ? ` until ${day(i.held_until)}` : ''}</span>}
           </div>
@@ -102,6 +104,7 @@ export default function StockView({ id }: { id: string }) {
           {i.status === 'available' && <button className="btn" disabled={busy} onClick={() => confirm('Archive this stone? It leaves the stock list but keeps its history.') && rpc('set_item_archived', { p_id: id, p_archived: true }, 'Archived')}>Archive</button>}
           {i.status === 'archived' && !i.mounted_in && <button className="btn" disabled={busy} onClick={() => rpc('set_item_archived', { p_id: id, p_archived: false }, 'Back in stock')}>Restore</button>}
           {i.status === 'available' && !i.mounted_in && <a className="btn" href={`#/memos/new?item=${id}`}>Memo out</a>}
+          {i.status === 'available' && !i.mounted_in && <a className="btn" href={`#/invoices/new?item=${id}`}>Invoice</a>}
           <button className="btn primary" onClick={() => go(`stock/${id}/edit`)}><Icon name="edit" /> Edit</button>
         </div>
       </div>
@@ -177,6 +180,7 @@ export default function StockView({ id }: { id: string }) {
           <KV k="Origin" v={i.origin} />
           {i.remarks && <KV k="Remarks" v={<span style={{ whiteSpace: 'pre-wrap' }}>{i.remarks}</span>} />}
         </Card>
+        <PartnerPanel item={i} onChange={load} />
         <div className="card card-pad">
           <div className="row" style={{ marginBottom: 12 }}><h3>Files</h3><span className="spacer" />
             <input ref={fileInput} type="file" accept="image/*,application/pdf" multiple hidden onChange={(e) => addFiles(e.target.files)} />

@@ -5,7 +5,7 @@ import { go } from '../lib/router'
 import { Icon, Stars, useApp } from '../components/ui'
 import { typeLabel, type Account, type LogRow, type Note } from '../lib/types'
 
-const TABS = ['General', 'Contacts & addresses', 'Notes', 'History', 'Transactions'] as const
+const TABS = ['General', 'Contacts & addresses', 'Notes', 'History', 'Transactions', 'Partner'] as const
 
 export default function AccountView({ id }: { id: string }) {
   const { team, toast } = useApp()
@@ -72,7 +72,7 @@ export default function AccountView({ id }: { id: string }) {
       {err && <div className="alert">{err}</div>}
 
       <div className="tabs">
-        {TABS.map((t) => (
+        {TABS.filter((t) => t !== 'Partner' || a.types.includes('partner')).map((t) => (
           <button key={t} className={tab === t ? 'on' : ''} onClick={() => setTab(t)}>
             {t}{t === 'Notes' && notes.length ? ` (${notes.length})` : ''}
           </button>
@@ -174,28 +174,88 @@ export default function AccountView({ id }: { id: string }) {
       )}
 
       {tab === 'Transactions' && <AccountDocs accountId={id} />}
+      {tab === 'Partner' && <PartnerTab accountId={id} />}
     </>
   )
 }
 
 function AccountDocs({ accountId }: { accountId: string }) {
-  const [docs, setDocs] = useState<{ id: string; kind: string; doc_no: number; doc_date: string; status: string; vendor_doc: string }[] | null>(null)
+  type Row = { id: string; date: string; type: string; no: number; ref: string; amount: number | null; balance: number | null; status: string; path: string }
+  const [rows, setRows] = useState<Row[] | null>(null)
   useEffect(() => {
-    supabase.from('docs').select('id,kind,doc_no,doc_date,status,vendor_doc').eq('account_id', accountId).order('doc_date', { ascending: false }).limit(500)
-      .then(({ data }) => setDocs(data ?? []))
+    (async () => {
+      const T: Record<string, string> = { memo: 'Memo', memo_return: 'Memo return', memo_in: 'Memo-in', memo_in_return: 'Return to supplier', invoice: 'Invoice', credit_invoice: 'Credit', purchase: 'Purchase', credit_purchase: 'Return to supplier (bill)' }
+      const [d, l, p] = await Promise.all([
+        supabase.from('docs').select('id,kind,doc_no,doc_date,status,vendor_doc').eq('account_id', accountId).limit(500),
+        supabase.from('ledger_docs').select('id,kind,doc_no,doc_date,status,vendor_doc,total,paid').eq('account_id', accountId).limit(500),
+        supabase.from('payments').select('id,kind,doc_no,pay_date,status,method,reference,amount').eq('account_id', accountId).limit(500),
+      ])
+      const out: Row[] = [
+        ...(d.data ?? []).map((x) => ({ id: x.id, date: x.doc_date, type: T[x.kind], no: x.doc_no, ref: x.vendor_doc, amount: null, balance: null, status: x.status,
+          path: (x.kind === 'memo' ? 'memos/' : x.kind === 'memo_in' ? 'memo-in/' : 'docs/') + x.id })),
+        ...(l.data ?? []).map((x) => ({ id: x.id, date: x.doc_date, type: T[x.kind], no: x.doc_no, ref: x.vendor_doc, amount: Number(x.total),
+          balance: x.kind === 'invoice' || x.kind === 'purchase' ? Number(x.total) - Number(x.paid) : null, status: x.status,
+          path: (x.kind.includes('invoice') ? 'invoices/' : 'purchases/') + x.id })),
+        ...(p.data ?? []).map((x) => ({ id: x.id, date: x.pay_date, type: x.kind === 'in' ? 'Payment received' : 'Payment sent', no: x.doc_no, ref: `${x.method} ${x.reference}`.trim(),
+          amount: Number(x.amount), balance: null, status: x.status, path: (x.kind === 'in' ? 'payments-in/' : 'payments-out/') + x.id })),
+      ].sort((a, b) => b.date.localeCompare(a.date))
+      setRows(out)
+    })()
   }, [accountId])
-  const T: Record<string, string> = { memo: 'Memo', memo_return: 'Memo return', memo_in: 'Memo-in', memo_in_return: 'Return to supplier' }
-  if (docs === null) return <div className="loading">Loading…</div>
-  if (!docs.length) return <div className="card empty"><div className="big">No transactions yet</div>Memos and memo-in for this account show here. Invoices and payments come in Stage 4.</div>
+  if (rows === null) return <div className="loading">Loading…</div>
+  if (!rows.length) return <div className="card empty"><div className="big">No transactions yet</div></div>
+  const open = rows.reduce((a, r) => a + (r.balance && r.status === 'open' ? r.balance : 0), 0)
   return (
     <div className="card"><div className="table-wrap"><table className="t">
-      <thead><tr><th>Date</th><th>Type</th><th>#</th><th>Their #</th><th>Status</th></tr></thead>
-      <tbody>{docs.map((d) => (
-        <tr key={d.id} onClick={() => go((d.kind === 'memo' ? 'memos/' : d.kind === 'memo_in' ? 'memo-in/' : 'docs/') + d.id)}>
-          <td>{day(d.doc_date)}</td><td>{T[d.kind] ?? d.kind}</td><td className="num">{d.doc_no}</td><td>{d.vendor_doc || '—'}</td>
-          <td><span className={'badge' + (d.status === 'open' ? '' : ' grey')}>{d.status}</span></td>
+      <thead><tr><th>Date</th><th>Type</th><th>#</th><th>Ref</th><th className="r">Amount</th><th className="r">Balance</th><th>Status</th></tr></thead>
+      <tbody>{rows.map((r) => (
+        <tr key={r.type + r.id} onClick={() => go(r.path)}>
+          <td>{day(r.date)}</td><td>{r.type}</td><td className="num">{r.no}</td><td>{r.ref || '—'}</td>
+          <td className="r num">{r.amount != null ? money(r.amount) : '—'}</td><td className="r num">{r.balance != null ? money(r.balance) : '—'}</td>
+          <td><span className={'badge' + (r.status === 'open' ? '' : ' grey')}>{r.status}</span></td>
         </tr>))}</tbody>
+      <tfoot><tr><td colSpan={7} className="small">Open balance {money(open)}</td></tr></tfoot>
     </table></div></div>
+  )
+}
+
+function PartnerTab({ accountId }: { accountId: string }) {
+  const { toast } = useApp()
+  const [rows, setRows] = useState<{ id: string; entry_date: string; kind: string; amount: number; note: string; item_id: string | null }[] | null>(null)
+  const [f, setF] = useState({ amount: '', dir: 'td_paid', note: '' })
+  const [err, setErr] = useState<string | null>(null)
+  const load = () => supabase.from('partner_entries').select('*').eq('partner_id', accountId).order('entry_date').order('at').then(({ data }) => setRows(data ?? []))
+  useEffect(() => { load() }, [accountId])
+  if (rows === null) return <div className="loading">Loading…</div>
+  let run = 0
+  const bal = rows.reduce((a, r) => a + Number(r.amount), 0)
+  async function settle() {
+    const { error } = await supabase.rpc('settle_partner', { p_partner: accountId, p_amount: Number(f.amount.replace(/[$,]/g, '')), p_direction: f.dir, p_date: null, p_note: f.note })
+    if (error) return setErr(errText(error))
+    toast('Recorded'); setF({ amount: '', dir: 'td_paid', note: '' }); load()
+  }
+  return (
+    <div className="grid" style={{ gap: 16 }}>
+      <div className="card card-pad partner-card">
+        <div style={{ font: '600 24px var(--serif)' }}>{bal === 0 ? 'Even' : bal > 0 ? `Partner owes TD ${money(bal)}` : `TD owes partner ${money(-bal)}`}</div>
+        <div className="row" style={{ marginTop: 12, alignItems: 'flex-end' }}>
+          <label className="f">Amount $<input className="input num" value={f.amount} onChange={(e) => setF({ ...f, amount: e.target.value })} /></label>
+          <label className="f">Direction<select className="input" value={f.dir} onChange={(e) => setF({ ...f, dir: e.target.value })}><option value="td_paid">TD paid the partner</option><option value="partner_paid">Partner paid TD</option></select></label>
+          <label className="f" style={{ flex: '1 1 160px' }}>Note (check #, wire)<input className="input" value={f.note} onChange={(e) => setF({ ...f, note: e.target.value })} /></label>
+          <button className="btn primary" disabled={!f.amount} onClick={settle}>Record payment</button>
+        </div>
+        {err && <div className="alert" style={{ marginTop: 10 }}>{err}</div>}
+      </div>
+      <div className="card"><div className="table-wrap"><table className="t">
+        <thead><tr><th>Date</th><th>What</th><th className="r">Partner owes TD</th><th className="r">TD owes partner</th><th className="r">Balance</th></tr></thead>
+        <tbody>{rows.map((r) => { run += Number(r.amount); return (
+          <tr key={r.id} style={{ cursor: r.item_id ? 'pointer' : 'default' }} onClick={() => r.item_id && go('stock/' + r.item_id)}>
+            <td>{day(r.entry_date)}</td><td>{r.note}</td>
+            <td className="r num">{Number(r.amount) > 0 ? money(r.amount) : ''}</td><td className="r num">{Number(r.amount) < 0 ? money(-r.amount) : ''}</td>
+            <td className="r num">{run >= 0 ? money(run) : '−' + money(-run)}</td>
+          </tr>) })}</tbody>
+      </table></div></div>
+    </div>
   )
 }
 
