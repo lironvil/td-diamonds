@@ -233,3 +233,9 @@ table.review th { padding: 8px; }
 
 .partner-card { border-color: var(--partner); background: var(--partner-bg); }
 .badge.partner { background: var(--partner-bg); color: var(--partner); }
+
+.age-1y { color: var(--bad); font-weight: 600; }
+.age-2y { color: #7b3fb0; font-weight: 600; }
+:root[data-theme='dark'] .age-2y { color: #c49af0; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme='light']) .age-2y { color: #c49af0; } }
+.age-chip { display: inline-block; padding: 2px 8px; border-radius: 99px; background: var(--panel-2); border: 1px solid var(--line); font-size: 12px; }

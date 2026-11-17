@@ -4,7 +4,7 @@ import { downloadCsv, money, money0 } from '../lib/format'
 import { go } from '../lib/router'
 import { Icon } from '../components/ui'
 import Snap from '../components/Snap'
-import { CLARITIES, COLORS, SHAPES, fmtPct, rapPct, statusLabel, type Item } from '../lib/stock'
+import { CLARITIES, COLORS, SHAPES, ageClass, daysOwned, fmtPct, rapPct, statusLabel, type Item } from '../lib/stock'
 
 type Acc = { id: string; company: string }
 const VIEWS: { key: string; label: string; test: (i: Item) => boolean }[] = [
@@ -83,8 +83,8 @@ export default function Stock() {
 
   function exportCsv() {
     downloadCsv('td-white-diamonds.csv', [
-      ['Stock#', 'Shape', 'Carat', 'Color', 'Clarity', 'Cut', 'Polish', 'Symmetry', 'Fluor', 'Lab', 'Cert#', 'Measurements', 'Depth%', 'Table%', 'Rap/ct', 'Cost/ct', 'Cost total', 'Ask/ct', 'Ask total', 'Ask Rap%', 'Status', 'Held for', 'Ownership', 'Supplier', 'Vendor stock', 'Vendor doc', 'Location'],
-      ...list.map((i) => [i.stock_no, i.shape, i.carat, i.color, i.clarity, i.cut, i.polish, i.symmetry, i.fluorescence, i.lab, i.cert_no, i.measurements, i.depth_pct, i.table_pct,
+      ['Stock#', 'Days owned', 'Shape', 'Carat', 'Color', 'Clarity', 'Cut', 'Polish', 'Symmetry', 'Fluor', 'Lab', 'Cert#', 'Measurements', 'Depth%', 'Table%', 'Rap/ct', 'Cost/ct', 'Cost total', 'Ask/ct', 'Ask total', 'Ask Rap%', 'Status', 'Held for', 'Ownership', 'Supplier', 'Vendor stock', 'Vendor doc', 'Location'],
+      ...list.map((i) => [i.stock_no, daysOwned(i), i.shape, i.carat, i.color, i.clarity, i.cut, i.polish, i.symmetry, i.fluorescence, i.lab, i.cert_no, i.measurements, i.depth_pct, i.table_pct,
         i.rap_ct, i.cost_ct, i.cost_total, i.ask_ct, i.ask_total, rapPct(i.ask_ct, i.rap_ct), statusLabel(i), i.held_for, i.ownership === 'memo_in' ? 'Memo-in' : 'Owned', supplier(i.supplier_id), i.vendor_stock, i.vendor_doc, i.location]),
     ])
   }
@@ -158,6 +158,7 @@ export default function Stock() {
                   {th('cost_total', 'Cost', 'r')}
                   {th('ask_ct', 'Ask/ct', 'r hide-sm')}
                   <th className="r hide-sm">Ask Rap</th>
+                  {th('owned_since', 'Days owned', 'r')}
                   <th>Status</th>
                   <th className="hide-sm">Supplier</th>
                 </tr>
@@ -177,6 +178,7 @@ export default function Stock() {
                     <td className="r num">{i.cost_total != null ? money0(i.cost_total) : '—'}</td>
                     <td className="r num hide-sm">{i.ask_ct != null ? money0(i.ask_ct) : '—'}</td>
                     <td className="r num hide-sm">{fmtPct(rapPct(i.ask_ct, i.rap_ct))}</td>
+                    <td className={'r num ' + ageClass(daysOwned(i))}>{daysOwned(i) ?? <span className="faint">—</span>}</td>
                     <td className="nw">
                       <span className={'badge' + (i.status === 'available' && !i.held_for ? '' : ' grey')}>{statusLabel(i)}</span>
                       {i.ownership === 'memo_in' && <span className="badge grey">MI</span>}
@@ -186,7 +188,7 @@ export default function Stock() {
                 ))}
               </tbody>
               <tfoot>
-                <tr><td colSpan={14} className="small">
+                <tr><td colSpan={15} className="small">
                   {list.length} stones · {tot.ct.toFixed(2)} ct · cost {money(tot.cost)}{tot.ask ? ` · asking ${money(tot.ask)}` : ''}
                 </td></tr>
               </tfoot>

@@ -3,7 +3,7 @@ import { supabase, errText } from '../lib/supabase'
 import { day, money, personName, readableChanges, when } from '../lib/format'
 import { go } from '../lib/router'
 import { Icon, useApp } from '../components/ui'
-import { describe, fmtPct, rapPct, signedUrl, statusLabel, uploadFiles, type Item } from '../lib/stock'
+import { ageClass, daysOwned, describe, fmtPct, rapPct, signedUrl, statusLabel, uploadFiles, type Item } from '../lib/stock'
 import { DOC_TITLE, itemLabel, type Doc, type DocLine } from '../lib/docs'
 import { ItemPicker } from '../components/Pickers'
 import PartnerPanel from '../components/PartnerPanel'
@@ -92,6 +92,7 @@ export default function StockView({ id }: { id: string }) {
             {i.cert_no && <span className="num">{i.lab} {i.cert_no}</span>}
             <span className={'badge' + (i.status === 'available' && !i.held_for ? '' : ' grey')}>{statusLabel(i)}</span>
             <span className="badge grey">{i.ownership === 'memo_in' ? 'Memo-in' : 'Owned'}</span>
+            {daysOwned(i) != null && <span className={'age-chip ' + ageClass(daysOwned(i))} title={`Owned since ${day(i.owned_since)}`}>Owned {daysOwned(i)} days</span>}
             {i.partner_id && <span className="badge partner">Partnership {100 - Number(i.partner_share)}/{i.partner_share}</span>}
             {i.mounted_in && linked[i.mounted_in] && <span className="small">Mounted in <a href={'#/stock/' + i.mounted_in}>#{linked[i.mounted_in].stock_no}</a></span>}
             {i.held_for && <span className="muted small">Held for <b>{i.held_for}</b>{i.held_until ? ` until ${day(i.held_until)}` : ''}</span>}
@@ -176,6 +177,7 @@ export default function StockView({ id }: { id: string }) {
           <KV k="Vendor stock #" v={i.vendor_stock} />
           <KV k="Vendor memo / inv #" v={i.vendor_doc} />
           <KV k="Received" v={i.received ? day(i.received) : ''} />
+          <KV k="Owned since" v={i.owned_since ? <span className={ageClass(daysOwned(i))}>{day(i.owned_since)}{daysOwned(i) != null ? ` · ${daysOwned(i)} days` : ''}</span> : ''} />
           <KV k="Location" v={i.location} />
           <KV k="Origin" v={i.origin} />
           {i.remarks && <KV k="Remarks" v={<span style={{ whiteSpace: 'pre-wrap' }}>{i.remarks}</span>} />}

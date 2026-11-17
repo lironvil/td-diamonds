@@ -15,7 +15,7 @@ export type Item = {
   pcs: number; memo_pcs: number; memo_ct: number; color_to: string; clarity_to: string; size_cat: string
   title: string; jewelry_type: string; style_no: string; metal: string; metal_wt: number | null; ring_size: string
   side_pcs: number | null; side_ct: number | null; metal_cost: number | null; labor_cost: number | null; stones_cost: number | null
-  center_id: string | null; mounted_in: string | null; partner_id: string | null; partner_share: number | null
+  center_id: string | null; mounted_in: string | null; partner_id: string | null; partner_share: number | null; owned_since: string | null
   created_by: string; created_at: string; updated_by: string | null; updated_at: string | null
 }
 export type Intake = {
@@ -109,3 +109,11 @@ export function matchAccount<T extends { company: string }>(name: string | null,
   if (!n) return null
   return list.find((a) => norm(a.company) === n) ?? list.find((a) => { const m = norm(a.company); return m.length > 3 && (m.includes(n) || n.includes(m)) }) ?? null
 }
+
+/** Days TD has owned an item still in stock (null for memo-in or items no longer in stock). */
+export function daysOwned(i: Pick<Item, 'ownership' | 'owned_since' | 'status'> & { mounted_in?: string | null }) {
+  if (i.ownership !== 'owned' || !i.owned_since || !(i.status === 'available' || i.status === 'on_memo') || i.mounted_in) return null
+  return Math.max(0, Math.floor((Date.now() - new Date(i.owned_since + 'T12:00:00').getTime()) / 86400000))
+}
+/** Over a year: red. Over two years: purple. */
+export const ageClass = (d: number | null) => (d == null ? '' : d > 730 ? 'age-2y' : d > 365 ? 'age-1y' : '')

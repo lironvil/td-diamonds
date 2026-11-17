@@ -4,7 +4,7 @@ import { downloadCsv, money, money0 } from '../lib/format'
 import { go } from '../lib/router'
 import { Icon } from '../components/ui'
 import Snap from '../components/Snap'
-import { statusLabel, type Item } from '../lib/stock'
+import { ageClass, daysOwned, statusLabel, type Item } from '../lib/stock'
 
 type Col = { label: string; cls?: string; get: (i: Item) => ReactNode; csv: (i: Item) => string | number | null }
 const range = (a: string, b: string) => [a, b].filter(Boolean).join('–')
@@ -83,17 +83,18 @@ export default function KindList({ kind }: { kind: 'parcel' | 'jewelry' }) {
         {rows === null ? <div className="loading">Loading…</div> : list.length === 0 ? <div className="empty"><div className="big">Nothing here yet</div></div> : (
           <div className="table-wrap">
             <table className="t">
-              <thead><tr><th>Stock #</th>{cols.map((c) => <th key={c.label} className={c.cls}>{c.label}</th>)}<th>Status</th></tr></thead>
+              <thead><tr><th>Stock #</th>{cols.map((c) => <th key={c.label} className={c.cls}>{c.label}</th>)}<th className="r">Days owned</th><th>Status</th></tr></thead>
               <tbody>
                 {list.map((i) => (
                   <tr key={i.id} onClick={() => go('stock/' + i.id)} className={i.status === 'available' || i.status === 'on_memo' ? '' : 'inactive'}>
                     <td className="num"><b style={{ fontWeight: 600 }}>{i.stock_no}</b></td>
                     {cols.map((c) => <td key={c.label} className={c.cls}>{c.get(i)}</td>)}
+                    <td className={'r num ' + ageClass(daysOwned(i))}>{daysOwned(i) ?? <span className="faint">—</span>}</td>
                     <td className="nw"><span className={'badge' + (i.status === 'available' && !i.held_for ? '' : ' grey')}>{statusLabel(i)}</span>{i.ownership === 'memo_in' && <span className="badge grey">MI</span>}</td>
                   </tr>
                 ))}
               </tbody>
-              <tfoot><tr><td colSpan={cols.length + 2} className="small">{list.length} · {totCt.toFixed(2)} ct · cost {money(totCost)}</td></tr></tfoot>
+              <tfoot><tr><td colSpan={cols.length + 3} className="small">{list.length} · {totCt.toFixed(2)} ct · cost {money(totCost)}</td></tr></tfoot>
             </table>
           </div>
         )}
