@@ -30,6 +30,8 @@ import LedgerView from './pages/LedgerView'
 import InvoiceNew from './pages/InvoiceNew'
 import PurchaseNew from './pages/PurchaseNew'
 import { PaymentNew, PaymentView } from './pages/PaymentPages'
+import { HelpButton } from './components/Help'
+import { helpKey } from './lib/help'
 
 export type NavItem = { path: string; label: string; stage?: number; owner?: boolean }
 export const NAV: { group: string; items: NavItem[] }[] = [
@@ -163,6 +165,7 @@ function Shell({ me }: { me: Me }) {
     page = <Soon label={item?.label ?? 'This module'} stage={item?.stage} />
   } else page = <Home />
 
+  const help = helpKey(route)
   const isOn = (p: string) => (p === '' ? path === '' : path === p || path.startsWith(p + '/'))
 
   return (
@@ -204,7 +207,9 @@ function Shell({ me }: { me: Me }) {
           <img src="./mark-negative.png" alt="TD Diamonds" style={{ height: 30 }} />
         </div>
         <main className="main">{page}</main>
+        {help && <HelpButton key={help} screen={help} />}
       </div>
     </div>
   )
 }
+

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { supabase, errText } from '../lib/supabase'
 import { useApp } from '../components/ui'
+import { HelpVideosAdmin } from '../components/Help'
 
 const FIELDS: [string, string, boolean?][] = [
   ['company_name', 'Company name'], ['company_address', 'Address (as printed)', true], ['company_phone', 'Phone'], ['company_email', 'Email'],
@@ -55,6 +56,8 @@ export default function Settings() {
           </div>
         </div>
       </div>
+      <HelpVideosAdmin />
     </>
   )
 }
+
