@@ -1,0 +1,67 @@
+{
+  "expo": {
+    "name": "TD Diamonds",
+    "slug": "td-diamonds",
+    "scheme": "tddiamonds",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "ios": {
+      "bundleIdentifier": "com.tddiamonds.app",
+      "supportsTablet": true,
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
+    },
+    "android": {
+      "package": "com.tddiamonds.app"
+    },
+    "plugins": [
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "TD Diamonds uses the camera to scan memos, invoices and certificates."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "TD Diamonds opens your photos so you can send a memo, invoice or certificate."
+        }
+      ],
+      [
+        "expo-sharing",
+        {
+          "ios": {
+            "enabled": true,
+            "activationRule": {
+              "supportsImageWithMaxCount": 10,
+              "supportsFileWithMaxCount": 10
+            }
+          },
+          "android": {
+            "enabled": true,
+            "singleShareMimeTypes": [
+              "image/*",
+              "application/pdf"
+            ],
+            "multipleShareMimeTypes": [
+              "image/*",
+              "application/pdf"
+            ]
+          }
+        }
+      ],
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash.png",
+          "backgroundColor": "#221F1F",
+          "imageWidth": 220
+        }
+      ],
+      "expo-image"
+    ]
+  }
+}
