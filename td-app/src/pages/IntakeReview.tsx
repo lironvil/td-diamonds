@@ -4,6 +4,8 @@ import { money, personName, when } from '../lib/format'
 import { go } from '../lib/router'
 import { Icon, useApp } from '../components/ui'
 import { CLARITIES, DOC_KIND, SHAPES, matchAccount, r2, readIntake, signedUrl, type Extraction, type Intake, type XStone } from '../lib/stock'
+import { ItemPicker } from '../components/Pickers'
+import InvoicePurchase from '../components/InvoicePurchase'
 
 type Acc = { id: string; company: string; types: string[] }
 type Line = {
@@ -109,9 +111,11 @@ export default function IntakeReview({ id }: { id: string }) {
       if (!l.shape || !n(l.carat)) out.push({ level: 'bad', text: `${label}: shape and carat are needed.` })
       if (l.priceCt && n(l.carat) && n(l.cost_total) != null && Math.abs(r2(l.priceCt * n(l.carat)!) - n(l.cost_total)!) > 1)
         out.push({ level: 'warn', text: `${label}: $/ct × carat = ${money(r2(l.priceCt * n(l.carat)!))}, amount says ${money(n(l.cost_total))}.` })
-      if (l.existingId) out.push({ level: 'warn', text: `${label}: ${l.lab} ${l.cert_no} is already in stock as #${l.existingNo}. Saving updates its grading and attaches this ${DOC_KIND[kind]?.toLowerCase() ?? 'file'}; price and supplier stay as they are.` })
+      if (kind === 'invoice') continue
+      if (kind === 'gia_cert' && !l.existingId) out.push({ level: 'bad', text: `${label}: ${l.lab} ${l.cert_no || 'report'} is not in stock. A certificate only updates a stone already in stock — pick the stock # below, or enter new stones through a memo-in or a purchase.` })
+      if (l.existingId) out.push({ level: 'warn', text: kind === 'gia_cert' ? `${label}: updates stock #${l.existingNo} — grading from the certificate, certificate attached; price and supplier stay as they are.` : `${label}: ${l.lab} ${l.cert_no} is already in stock as #${l.existingNo}. Saving updates its grading and attaches this ${DOC_KIND[kind]?.toLowerCase() ?? 'file'}; price and supplier stay as they are.` })
     }
-    if (ownership === 'memo_in' && !supplierId) out.push({ level: 'bad', text: 'Choose the supplier (memo-in stones belong to a supplier).' })
+    if (kind !== 'invoice' && ownership === 'memo_in' && !supplierId) out.push({ level: 'bad', text: 'Choose the supplier (memo-in stones belong to a supplier).' })
     return out
   }, [lines, x, ownership, supplierId, allSum, kind])
   const blocking = checks.some((c) => c.level === 'bad' && !c.text.includes('document says'))
@@ -214,11 +218,13 @@ export default function IntakeReview({ id }: { id: string }) {
                   {['gia_cert', 'memo', 'invoice'].map((k) => (
                     <button key={k} disabled={closed} className={'chip' + (kind === k ? ' on' : '')} onClick={() => { setKind(k); setOwnership(k === 'memo' ? 'memo_in' : 'owned') }}>{DOC_KIND[k]}</button>
                   ))}
+                  {kind === 'memo' && <>
                   <span style={{ width: 12 }} />
                   <button disabled={closed} className={'chip' + (ownership === 'owned' ? ' on' : '')} onClick={() => setOwnership('owned')}>Owned by TD</button>
                   <button disabled={closed} className={'chip' + (ownership === 'memo_in' ? ' on' : '')} onClick={() => setOwnership('memo_in')}>Memo-in</button>
+                  </>}
                 </div>
-                <div className="form-grid">
+                {kind !== 'gia_cert' && <div className="form-grid">
                   <label className="f">Supplier{ownership === 'memo_in' ? ' *' : ''}
                     <select className="input" disabled={closed} value={supplierId} onChange={(e) => setSupplierId(e.target.value)}>
                       <option value="">{x.supplier ? `Not matched: ${x.supplier}` : '—'}</option>
@@ -226,9 +232,9 @@ export default function IntakeReview({ id }: { id: string }) {
                     </select>
                   </label>
                   <label className="f">Vendor {DOC_KIND[kind]?.toLowerCase()} #<input className="input" disabled={closed} value={vendorDoc} onChange={(e) => setVendorDoc(e.target.value)} /></label>
-                  <label className="f">Received<input className="input" type="date" disabled={closed} value={received} onChange={(e) => setReceived(e.target.value)} /></label>
-                </div>
-                {supplierMissing && !closed && <button className="btn sm" style={{ marginTop: 10 }} onClick={addSupplier} disabled={busy}><Icon name="plus" /> Add “{x.supplier}” as a new supplier</button>}
+                  <label className="f">{kind === 'invoice' ? 'Invoice date' : 'Received'}<input className="input" type="date" disabled={closed} value={received} onChange={(e) => setReceived(e.target.value)} /></label>
+                </div>}
+                {supplierMissing && !closed && kind !== 'gia_cert' && <button className="btn sm" style={{ marginTop: 10 }} onClick={addSupplier} disabled={busy}><Icon name="plus" /> Add “{x.supplier}” as a new supplier</button>}
               </div>
 
               <div className="card">
@@ -246,10 +252,12 @@ export default function IntakeReview({ id }: { id: string }) {
                             <td><input className="input sm" disabled={closed} style={{ width: 52 }} value={l.color} onChange={(e) => setLine(l.key, 'color', e.target.value.toUpperCase())} /></td>
                             <td><select className="input sm" style={{ minWidth: 76 }} disabled={closed} value={l.clarity} onChange={(e) => setLine(l.key, 'clarity', e.target.value)}><option value="">—</option>{CLARITIES.map((x) => <option key={x}>{x}</option>)}</select></td>
                             <td className="nw"><input className="input sm num" disabled={closed} style={{ width: 120 }} value={l.cert_no} onChange={(e) => setLine(l.key, 'cert_no', e.target.value.replace(/\s/g, ''))} />
-                              {l.existingNo && <div className="small" style={{ color: 'var(--warn)' }}>In stock #{l.existingNo}</div>}</td>
+                              {l.existingNo && kind !== 'invoice' && <div className="small" style={{ color: 'var(--warn)' }}>{kind === 'gia_cert' ? 'Updates' : 'In stock'} #{l.existingNo}{kind === 'gia_cert' && !closed && <button className="btn ghost sm" style={{ padding: '0 4px' }} onClick={() => setLines(lines.map((x) => (x.key === l.key ? { ...x, existingId: null, existingNo: null } : x)))} aria-label="Change stone">×</button>}</div>}
+                              {kind === 'gia_cert' && !l.existingId && !closed && <div style={{ width: 200, marginTop: 4 }}><ItemPicker placeholder="Stock # this belongs to"
+                                filter={(x) => x.kind === 'white_diamond'} onPick={(x) => setLines(lines.map((y) => (y.key === l.key ? { ...y, existingId: x.id, existingNo: x.stock_no } : y)))} /></div>}</td>
                             <td className="hide-sm"><input className="input sm" disabled={closed} style={{ width: 80 }} value={l.vendor_stock} onChange={(e) => setLine(l.key, 'vendor_stock', e.target.value)} /></td>
                             <td className="r nw">
-                              {l.existingId ? <span className="faint small">kept</span> : <input className="input sm num" disabled={closed} style={{ width: 100, textAlign: 'right' }} value={l.cost_total} onChange={(e) => setLine(l.key, 'cost_total', e.target.value)} />}
+                              {l.existingId && kind !== 'invoice' ? <span className="faint small">kept</span> : <input className="input sm num" disabled={closed} style={{ width: 100, textAlign: 'right' }} value={l.cost_total} onChange={(e) => setLine(l.key, 'cost_total', e.target.value)} />}
                               <button className="btn ghost sm" style={{ padding: '2px 6px' }} onClick={() => setOpen(open === l.key ? null : l.key)} aria-label="More">{open === l.key ? '−' : '+'}</button>
                             </td>
                           </tr>
@@ -268,7 +276,9 @@ export default function IntakeReview({ id }: { id: string }) {
                       ))}
                     </tbody>
                     <tfoot><tr><td colSpan={8} className="small">
-                      {included.length} to save · {included.reduce((a, l) => a + (n(l.carat) ?? 0), 0).toFixed(2)} ct · new stones cost {money(sum)}
+                      {kind === 'gia_cert' ? `${included.length} to update`
+                        : kind === 'invoice' ? `${included.length} line${included.length === 1 ? '' : 's'} · ${included.reduce((a, l) => a + (n(l.carat) ?? 0), 0).toFixed(2)} ct · total ${money(r2(included.reduce((a, l) => a + (n(l.cost_total) ?? 0), 0)))}`
+                        : <>{included.length} to save · {included.reduce((a, l) => a + (n(l.carat) ?? 0), 0).toFixed(2)} ct · new stones cost {money(sum)}</>}
                     </td></tr></tfoot>
                   </table>
                 </div>
@@ -287,10 +297,14 @@ export default function IntakeReview({ id }: { id: string }) {
                 )}
               </div>
 
-              {!closed && (
+              {kind === 'invoice' ? (
+                <InvoicePurchase intakeId={id} closed={closed} supplierId={supplierId} supplierName={accs.find((a) => a.id === supplierId)?.company ?? ''}
+                  vendorDoc={vendorDoc} date={received}
+                  lines={included.map((l) => ({ key: l.key, shape: l.shape, carat: l.carat, color: l.color, clarity: l.clarity, lab: l.lab, cert_no: l.cert_no, vendor_stock: l.vendor_stock, rap_ct: l.rap_ct, cost_total: l.cost_total, extra: l.extra }))} />
+              ) : !closed && (
                 <div className="sticky-bar" style={{ marginTop: 0 }}>
                   <button className="btn primary" disabled={busy || blocking || included.length === 0} onClick={save}>
-                    {busy ? 'Saving…' : `Save ${included.length} stone${included.length === 1 ? '' : 's'} to stock`}
+                    {busy ? 'Saving…' : kind === 'gia_cert' ? `Update ${included.length} stone${included.length === 1 ? '' : 's'}` : `Save ${included.length} stone${included.length === 1 ? '' : 's'} to stock`}
                   </button>
                 </div>
               )}

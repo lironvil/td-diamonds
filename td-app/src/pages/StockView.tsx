@@ -7,6 +7,7 @@ import { ageClass, daysOwned, describe, fmtPct, rapPct, signedUrl, statusLabel, 
 import { DOC_TITLE, itemLabel, type Doc, type DocLine } from '../lib/docs'
 import { ItemPicker } from '../components/Pickers'
 import PartnerPanel from '../components/PartnerPanel'
+import AddCert from '../components/AddCert'
 import type { LogRow } from '../lib/types'
 
 const ACTION: Record<string, string> = {
@@ -186,6 +187,7 @@ export default function StockView({ id }: { id: string }) {
         <div className="card card-pad">
           <div className="row" style={{ marginBottom: 12 }}><h3>Files</h3><span className="spacer" />
             <input ref={fileInput} type="file" accept="image/*,application/pdf" multiple hidden onChange={(e) => addFiles(e.target.files)} />
+            {i.kind === 'white_diamond' && <AddCert item={i} onDone={load} />}
             <button className="btn sm" disabled={busy} onClick={() => fileInput.current?.click()}><Icon name="plus" /> Add</button>
           </div>
           {i.files.length === 0 ? <div className="muted small">No files. Add the GIA PDF or photos.</div> : i.files.map((f) => (

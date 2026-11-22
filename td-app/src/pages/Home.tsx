@@ -38,9 +38,11 @@ export default function Home() {
   const [s, setS] = useState<Summary | null>(null)
   const [feed, setFeed] = useState<LogRow[] | null>(null)
   const [err, setErr] = useState<string | null>(null)
+  const [waiting, setWaiting] = useState<{ n: number; value: number; old: number } | null>(null)
 
   useEffect(() => {
     supabase.rpc('home_summary').then(({ data, error }) => (error ? setErr(errText(error)) : setS(data)))
+    supabase.rpc('memo_in_sold_waiting').then(({ data }) => { const w = (data ?? []) as { memo_in_cost: number | null; days: number }[]; setWaiting({ n: w.length, value: w.reduce((a, x) => a + Number(x.memo_in_cost ?? 0), 0), old: w.filter((x) => x.days > 30).length }) })
     supabase.rpc('recent_activity', { p_limit: 15 }).then(({ data, error }) => (error ? setErr(errText(error)) : setFeed(data ?? [])))
   }, [])
 
@@ -55,6 +57,7 @@ export default function Home() {
         { label: 'Open invoices', value: money0(s.open_invoices ?? 0), note: `${plural(s.open_invoices_count, 'invoice')}${s.invoices_overdue ? ` · ${s.invoices_overdue} overdue` : ''}`, to: 'invoices' },
         { label: 'Out on memo', value: money0(s.out_on_memo_value), note: `${plural(s.open_memos, 'open memo')}${s.memos_overdue ? ` · ${s.memos_overdue} overdue` : ''}`, to: 'memos' },
         { label: 'Unpaid vendor bills', value: money0(s.unpaid_purchases ?? 0), note: plural(s.unpaid_purchases_count, 'bill'), to: 'purchases' },
+        ...(waiting ? [{ label: 'Sold from memo-in, no vendor bill', value: String(waiting.n), note: waiting.n ? `memo-in value ${money0(waiting.value)}${waiting.old ? ` · ${waiting.old} over 30 days` : ''}` : 'nothing waiting', to: 'awaiting-bills' }] : []),
         { label: 'Sales this month', value: money0(s.sales_month ?? 0), note: `same month last year ${money0(s.sales_month_last_year)}`, to: 'invoices' },
         { label: 'Inventory on hand (owned)', value: money0(s.stock_cost), note: `${plural(s.stock_count, 'stone')} · ${Number(s.stock_carats).toFixed(2)} ct${s.stock_memo_in ? ` · +${s.stock_memo_in} memo-in` : ''}`, to: 'stock' },
         { label: 'Inbox', value: String(s.inbox), note: s.inbox ? 'photos waiting for review' : 'nothing waiting', to: 'inbox' },

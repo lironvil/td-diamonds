@@ -65,7 +65,7 @@ warnings: short plain-English notes for staff: unclear digits, missing supplier 
 type Stone = Record<string, string | number | null>;
 type Extraction = { document_type: string; supplier: string | null; doc_number: string | null; doc_date: string | null; doc_total: number | string | null; stones: Stone[]; warnings: string[] };
 
-async function readWithClaude(files: { bytes: Uint8Array; mime: string }[], hint: string, apiKey: string): Promise<Extraction> {
+async function readWithClaude(files: { bytes: Uint8Array; mime: string }[], hint: string, apiKey: string, today: string): Promise<Extraction> {
   const content: unknown[] = files.map((f) => {
     const data = encodeBase64(f.bytes);
     return f.mime === "application/pdf"
@@ -81,7 +81,7 @@ async function readWithClaude(files: { bytes: Uint8Array; mime: string }[], hint
       method: "POST",
       headers: { "x-api-key": apiKey, "anthropic-version": "2023-06-01", "content-type": "application/json" },
       body: JSON.stringify({
-        model: MODEL, max_tokens: 16000, system: instructions,
+        model: MODEL, max_tokens: 16000, system: instructions + `\nToday's date in New York is ${today}. Dates up to today are normal; only warn about a date that is after today.`,
         output_config: { effort: "medium", format: { type: "json_schema", schema } },
         messages: [{ role: "user", content }],
       }),
@@ -126,7 +126,7 @@ Deno.serve(async (req) => {
   let lockedId: string | null = null;
   let adminRef: Awaited<ReturnType<typeof caller>>["admin"] | null = null;
   try {
-    const { admin } = await caller(req);
+    const { me, admin } = await caller(req);
     adminRef = admin;
     const { intakeId, force } = await req.json().catch(() => ({}));
     if (typeof intakeId !== "string") throw new HttpError(400, "Photo not found.");
@@ -151,7 +151,7 @@ Deno.serve(async (req) => {
       if (dl || !blob) throw new Error("A saved file could not be opened. Upload it again.");
       files.push({ bytes: new Uint8Array(await blob.arrayBuffer()), mime: f.mime });
     }
-    const extraction = await readWithClaude(files, intake.doc_kind, apiKey);
+    const extraction = await readWithClaude(files, intake.doc_kind, apiKey, me.today || new Date().toLocaleDateString("en-CA", { timeZone: "America/New_York" }));
     await admin.from("intakes").update({ extraction, status: "ready", reading_at: null, error: "",
       doc_kind: intake.doc_kind === "auto" && extraction.document_type !== "other" ? extraction.document_type : intake.doc_kind }).eq("id", intakeId);
     lockedId = null;

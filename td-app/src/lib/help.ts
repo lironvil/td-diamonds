@@ -33,6 +33,7 @@ export const HELP_SCREENS: { key: string; title: string; group: string }[] = [
   { key: 'purchases', title: 'Purchases & vendor bills', group: 'Purchasing' },
   { key: 'purchase-new', title: 'Enter a purchase', group: 'Purchasing' },
   { key: 'purchase-view', title: 'Purchase page', group: 'Purchasing' },
+  { key: 'awaiting-bills', title: 'Sold from memo-in, waiting for vendor invoice', group: 'Purchasing' },
   { key: 'payments-out', title: 'Supplier payments list', group: 'Purchasing' },
   { key: 'payment-out-new', title: 'Pay a supplier', group: 'Purchasing' },
   { key: 'payment-out-view', title: 'Supplier payment page', group: 'Purchasing' },
@@ -61,6 +62,7 @@ export function helpKey(r: string[]): string | null {
     case 'parcel-mixing': return b === 'new' ? 'mix-new' : 'parcel-mixing'
     case 'invoices': return listNewView('invoices', 'invoice')
     case 'purchases': return listNewView('purchases', 'purchase')
+    case 'awaiting-bills': return 'awaiting-bills'
     case 'payments-in': return listNewView('payments-in', 'payment-in')
     case 'payments-out': return listNewView('payments-out', 'payment-out')
     case 'team': return 'team'
