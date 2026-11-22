@@ -30,6 +30,7 @@ import LedgerView from './pages/LedgerView'
 import InvoiceNew from './pages/InvoiceNew'
 import PurchaseNew from './pages/PurchaseNew'
 import AwaitingBills from './pages/AwaitingBills'
+import Reports from './pages/Reports'
 import { PaymentNew, PaymentView } from './pages/PaymentPages'
 import { HelpButton } from './components/Help'
 import { helpKey } from './lib/help'
@@ -67,7 +68,7 @@ export const NAV: { group: string; items: NavItem[] }[] = [
       { path: 'payments-out', label: 'Supplier payments' },
     ],
   },
-  { group: 'Owner', items: [{ path: 'm/reports', label: 'Reports & profit', stage: 7, owner: true }] },
+  { group: 'Owner', items: [{ path: 'reports', label: 'Reports & profit', owner: true }] },
   { group: 'Settings', items: [{ path: 'team', label: 'Team' }, { path: 'settings', label: 'Settings' }] },
 ]
 
@@ -157,6 +158,7 @@ function Shell({ me }: { me: Me }) {
   else if (route[0] === 'purchases' && route[1]) page = <LedgerView key={path} id={route[1]} />
   else if (route[0] === 'purchases') page = <LedgerList key="pur" kind="purchase" />
   else if (route[0] === 'awaiting-bills') page = <AwaitingBills />
+  else if (route[0] === 'reports') page = <Reports />
   else if (route[0] === 'payments-in' && route[1] === 'new') page = <PaymentNew key="in" kind="in" />
   else if (route[0] === 'payments-in' && route[1]) page = <PaymentView key={path} id={route[1]} />
   else if (route[0] === 'payments-in') page = <PaymentList key="pin" kind="in" />

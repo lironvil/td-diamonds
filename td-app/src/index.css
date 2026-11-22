@@ -251,3 +251,16 @@ table.review th { padding: 8px; }
 .help-empty { padding: 40px 10px; text-align: center; color: var(--muted); }
 @media print { .help-fab { display: none; } }
 @media (max-width: 700px) { .help-fab { right: 12px; bottom: 12px; padding: 6px 12px 6px 7px; } }
+
+/* reports */
+.print-only { display: none; }
+@media print {
+  .print-only { display: block; }
+  .rep-table a { color: inherit; text-decoration: none; }
+  .table-wrap { overflow: visible !important; }
+}
+@media print {
+  .shell { display: block; }
+  .main { padding: 0; max-width: none; }
+  .card { box-shadow: none; border: 0; border-radius: 0; }
+}

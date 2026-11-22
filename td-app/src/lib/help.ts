@@ -37,6 +37,7 @@ export const HELP_SCREENS: { key: string; title: string; group: string }[] = [
   { key: 'payments-out', title: 'Supplier payments list', group: 'Purchasing' },
   { key: 'payment-out-new', title: 'Pay a supplier', group: 'Purchasing' },
   { key: 'payment-out-view', title: 'Supplier payment page', group: 'Purchasing' },
+  { key: 'reports', title: 'Reports & profit', group: 'Owner' },
   { key: 'team', title: 'Team', group: 'Settings' },
   { key: 'settings', title: 'Settings', group: 'Settings' },
 ]
@@ -65,6 +66,7 @@ export function helpKey(r: string[]): string | null {
     case 'awaiting-bills': return 'awaiting-bills'
     case 'payments-in': return listNewView('payments-in', 'payment-in')
     case 'payments-out': return listNewView('payments-out', 'payment-out')
+    case 'reports': return 'reports'
     case 'team': return 'team'
     case 'settings': return 'settings'
     default: return null
