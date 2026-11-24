@@ -1,12 +1,11 @@
 # TD Diamonds — iPhone app
 
-Photo input for the TD Diamonds software (same login, same database).
+Camera for the TD Diamonds software (same login, same database). Photograph or share a document, say what it is, and it goes to the software's Inbox — already read, ready to review and save on the computer.
 
-- **Memo-in**: scan/photo/PDF of a supplier memo → memo-in.
-- **Supplier invoice**: invoice → purchase ("Is this from a memo-in?" → match by GIA # then lot #; price differences confirmed).
-- **Stone for a customer**: memo-in / invoice / certificate → find the stones in stock → customer memo or invoice.
-- **Certificate**: GIA certificate → details and certificate attached to a stone in stock.
+- Scan (iPhone document scanner), Photos, or Files/PDF.
 - Share sheet: WhatsApp / Mail / Files / Photos → Share → TD Diamonds.
+- Types: supplier memo, supplier invoice, certificate, other.
+- "Recently sent" shows each document's status (to review / saved / couldn't read).
 
 ## Build (no Mac needed)
 1. `npm install`

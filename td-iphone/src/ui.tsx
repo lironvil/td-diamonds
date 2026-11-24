@@ -1,5 +1,5 @@
-import { type ReactNode, useMemo, useState } from 'react'
-import { ActivityIndicator, FlatList, Modal, Pressable, StyleSheet, Text, TextInput, View, type TextInputProps, type ViewStyle } from 'react-native'
+import { type ReactNode } from 'react'
+import { ActivityIndicator, Pressable, StyleSheet, Text, TextInput, View, type TextInputProps, type ViewStyle } from 'react-native'
 
 export const C = {
   ink: '#221F1F', gold: '#D1D199', goldDeep: '#A8A86A', bg: '#F6F4EF', panel: '#FFFFFF', line: '#E4E0D6',
@@ -33,40 +33,6 @@ export function Field({ label, ...p }: TextInputProps & { label: string }) {
     <View style={{ flex: 1, minWidth: 90 }}>
       <Text style={s.label}>{label}</Text>
       <TextInput placeholderTextColor={C.faint} style={s.input} {...p} />
-    </View>
-  )
-}
-
-/** Tap to choose an account; search by name or account #. */
-export function AccountSelect<T extends { id: string; acct_no: number; company: string; types: string[] | null }>({ label, value, list, onPick, types }: {
-  label: string; value: T | null; list: T[]; onPick: (a: T) => void; types?: string[]
-}) {
-  const [open, setOpen] = useState(false)
-  const [q, setQ] = useState('')
-  const shown = useMemo(() => {
-    const t = q.trim().toLowerCase()
-    return list.filter((a) => (!types || !a.types || a.types.some((x) => types.includes(x)) || t) && (!t || a.company.toLowerCase().includes(t) || String(a.acct_no) === t)).slice(0, 200)
-  }, [q, list, types])
-  return (
-    <View style={{ marginBottom: 10 }}>
-      <Text style={s.label}>{label}</Text>
-      <Pressable onPress={() => setOpen(true)} style={[s.input, { justifyContent: 'center' }]}>
-        <Text style={{ fontSize: 17, color: value ? C.ink : C.faint }}>{value ? value.company : 'Choose…'}</Text>
-      </Pressable>
-      <Modal visible={open} animationType="slide" presentationStyle="pageSheet" onRequestClose={() => setOpen(false)}>
-        <View style={{ flex: 1, backgroundColor: C.bg, padding: 16 }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10 }}>
-            <Text style={[s.h, { flex: 1, marginBottom: 0 }]}>{label}</Text>
-            <Btn small title="Close" onPress={() => setOpen(false)} />
-          </View>
-          <TextInput autoFocus placeholder="Name or account #" placeholderTextColor={C.faint} value={q} onChangeText={setQ} style={[s.input, { marginBottom: 10 }]} />
-          <FlatList data={shown} keyExtractor={(a) => a.id} keyboardShouldPersistTaps="handled"
-            renderItem={({ item }) => (
-              <Pressable onPress={() => { onPick(item); setOpen(false); setQ('') }} style={({ pressed }) => [s.row, pressed && { backgroundColor: C.line }]}>
-                <Text style={{ fontSize: 17, color: C.ink }}>{item.company}</Text><Text style={s.small}>#{item.acct_no}</Text>
-              </Pressable>)} />
-        </View>
-      </Modal>
     </View>
   )
 }
