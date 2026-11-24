@@ -3,6 +3,7 @@ import { supabase, errText } from '../lib/supabase'
 import { go } from '../lib/router'
 import { Icon, useApp } from '../components/ui'
 import PriceTrio from '../components/PriceTrio'
+import { StonePicker } from '../components/MountedStones'
 import { CLARITIES, SHAPES, type Item } from '../lib/stock'
 
 type F = Record<string, string | number | null>
@@ -23,6 +24,8 @@ export default function ItemForm({ kind, id }: { kind: 'parcel' | 'jewelry'; id?
   const [accs, setAccs] = useState<{ id: string; company: string; types: string[] }[]>([])
   const [err, setErr] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+  const [stones, setStones] = useState<Parameters<typeof StonePicker>[0]['picked']>([])
+  const [center, setCenter] = useState<string | null>(null)
 
   useEffect(() => {
     supabase.from('accounts').select('id,company,types').eq('active', true).order('company').then(({ data }) => setAccs(data ?? []))
@@ -58,6 +61,11 @@ export default function ItemForm({ kind, id }: { kind: 'parcel' | 'jewelry'; id?
     const { data, error } = await supabase.rpc('save_item', { p })
     setBusy(false)
     if (error) return setErr(errText(error))
+    if (!id && !isP && stones.length) {
+      const { error: me } = await supabase.rpc('mount_stones', { p_jewelry: data.id, p_stones: stones.map((x) => x.id), p_center: center })
+      if (me) { toast(`Stock #${data.stock_no} added — stones not mounted: ${errText(me)}`); return go('stock/' + data.id) }
+      toast(`Stock #${data.stock_no} added with ${stones.length} stone${stones.length === 1 ? '' : 's'}`); return go('stock/' + data.id)
+    }
     toast(id ? 'Saved' : `Stock #${data.stock_no} added`); go('stock/' + data.id)
   }
 
@@ -67,7 +75,7 @@ export default function ItemForm({ kind, id }: { kind: 'parcel' | 'jewelry'; id?
   const sel = (k: string, label: string, opts: string[]) => (
     <label className="f">{label}<select className="input" value={(f[k] as string) ?? ''} onChange={(e) => set(k, e.target.value)}><option value="">—</option>{opts.map((o) => <option key={o}>{o}</option>)}</select></label>
   )
-  const jCost = (Number(f.metal_cost) || 0) + (Number(f.labor_cost) || 0) + Number(orig?.stones_cost ?? 0)
+  const jCost = (Number(f.metal_cost) || 0) + (Number(f.labor_cost) || 0) + Number(orig?.stones_cost ?? 0) + stones.reduce((a, x) => a + Number(x.cost_total ?? 0), 0)
 
   return (
     <>
@@ -107,7 +115,7 @@ export default function ItemForm({ kind, id }: { kind: 'parcel' | 'jewelry'; id?
               {inp('carat', 'Total diamond weight (ct)', { inputMode: 'decimal', placeholder: 'optional' })}
               {!id && inp('stock_no', 'Stock # (blank = next)', { inputMode: 'numeric' })}
             </div>
-            <div className="faint small" style={{ marginTop: 8 }}>Mount a loose center diamond from the piece’s page after saving. Its cost is added automatically.</div>
+            <div className="faint small" style={{ marginTop: 8 }}>Stones from stock go in “Stones from stock” below; their cost is added automatically.</div>
           </Block>
         )}
 
@@ -121,12 +129,18 @@ export default function ItemForm({ kind, id }: { kind: 'parcel' | 'jewelry'; id?
             <div className="form-grid">
               {inp('metal_cost', 'Metal cost $', { inputMode: 'decimal' })}
               {inp('labor_cost', 'Labour cost $', { inputMode: 'decimal' })}
-              <div className="f" style={{ fontSize: 12, color: 'var(--muted)', fontWeight: 500 }}>Stones cost<div style={{ color: 'var(--text)', paddingTop: 8 }}>${Number(orig?.stones_cost ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2 })} <span className="faint">(from mounted stones)</span></div></div>
+              <div className="f" style={{ fontSize: 12, color: 'var(--muted)', fontWeight: 500 }}>Stones cost<div style={{ color: 'var(--text)', paddingTop: 8 }}>${(Number(orig?.stones_cost ?? 0) + stones.reduce((a, x) => a + Number(x.cost_total ?? 0), 0)).toLocaleString('en-US', { minimumFractionDigits: 2 })} <span className="faint">(from mounted stones)</span></div></div>
               <div className="f" style={{ fontSize: 12, color: 'var(--muted)', fontWeight: 500 }}>Total cost<div style={{ color: 'var(--text)', paddingTop: 8, fontWeight: 600 }}>${jCost.toLocaleString('en-US', { minimumFractionDigits: 2 })}</div></div>
               <label className="f">Asking price $<input className="input" inputMode="decimal" value={f.ask_total == null ? '' : String(f.ask_total)} onChange={(e) => set('ask_total', e.target.value.trim() === '' ? null : Number(e.target.value.replace(/[$,]/g, '')) || null)} /></label>
             </div>
           )}
         </Block>
+
+        {!id && !isP && (
+          <Block title="Stones from stock">
+            <StonePicker picked={stones} setPicked={setStones} center={center} setCenter={setCenter} />
+          </Block>
+        )}
 
         <Block title="Source">
           <div className="chips" style={{ marginBottom: 12 }}>

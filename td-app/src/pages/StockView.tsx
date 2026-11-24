@@ -5,9 +5,9 @@ import { go } from '../lib/router'
 import { Icon, useApp } from '../components/ui'
 import { ageClass, daysOwned, describe, fmtPct, rapPct, signedUrl, statusLabel, uploadFiles, type Item } from '../lib/stock'
 import { DOC_TITLE, itemLabel, type Doc, type DocLine } from '../lib/docs'
-import { ItemPicker } from '../components/Pickers'
 import PartnerPanel from '../components/PartnerPanel'
 import AddCert from '../components/AddCert'
+import MountedStones from '../components/MountedStones'
 import type { LogRow } from '../lib/types'
 
 const ACTION: Record<string, string> = {
@@ -27,7 +27,6 @@ export default function StockView({ id }: { id: string }) {
   const [where, setWhere] = useState<(DocLine & { docs: Doc })[]>([])
   const [accName, setAccName] = useState<Record<string, string>>({})
   const [linked, setLinked] = useState<Record<string, Item>>({})
-  const [mounting, setMounting] = useState(false)
 
   const load = useCallback(async () => {
     const [it, l] = await Promise.all([
@@ -123,6 +122,9 @@ export default function StockView({ id }: { id: string }) {
         </div>
       )}
 
+      {i.kind === 'jewelry' && <div className="card card-pad" style={{ marginBottom: 16 }}>
+        <MountedStones piece={id} centerId={i.center_id} canEdit={i.status === 'available'} onChange={load} />
+      </div>}
       <div className="grid sections">
         {i.kind === 'parcel' && (
           <Card title="Parcel">
@@ -138,11 +140,6 @@ export default function StockView({ id }: { id: string }) {
             <KV k="Type" v={i.jewelry_type} /><KV k="Description" v={i.title} /><KV k="Metal" v={[i.metal, i.metal_wt != null ? i.metal_wt + ' g' : ''].filter(Boolean).join(' · ')} />
             <KV k="Style #" v={i.style_no} /><KV k="Ring size" v={i.ring_size} />
             <KV k="Side stones" v={[i.side_pcs != null ? i.side_pcs + ' pcs' : '', i.side_ct != null ? Number(i.side_ct).toFixed(2) + ' ct' : ''].filter(Boolean).join(' · ')} />
-            <KV k="Center stone" v={i.center_id && linked[i.center_id] ? <><a href={'#/stock/' + i.center_id}>#{linked[i.center_id].stock_no}</a> {describe(linked[i.center_id])}
-              {i.status === 'available' && <button className="btn sm ghost danger" style={{ marginLeft: 6 }} disabled={busy} onClick={() => confirm('Take the center stone out? It goes back to loose stock and its cost leaves the piece.') && rpc('unmount_stone', { p_jewelry: id }, 'Stone taken out')}>Take out</button>}</>
-              : (i.status === 'available' ? (mounting ? <div style={{ minWidth: 220 }}><ItemPicker placeholder="Loose diamond stock # / GIA #" filter={(x) => x.kind === 'white_diamond' && x.status === 'available' && x.ownership === 'owned'}
-                  onPick={async (x) => { setMounting(false); await rpc('mount_stone', { p_jewelry: id, p_stone: x.id }, `#${x.stock_no} mounted`) }} /></div>
-                : <button className="btn sm" onClick={() => setMounting(true)}>Mount a stone</button>) : '')} />
           </Card>
         )}
         {i.kind === 'white_diamond' && <Card title="Grading">
