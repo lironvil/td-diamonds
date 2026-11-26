@@ -72,24 +72,24 @@ button:focus-visible{outline:3px solid var(--gold);outline-offset:3px}
     <div class="rule"></div>
     <form id="f" novalidate autocomplete="off">
       <div class="row">
-        <div><label for="first">First name <b>*</b></label><input id="first" name="first" autocapitalize="words" autocomplete="off" enterkeyhint="next" maxlength="80"></div>
-        <div><label for="last">Last name <b>*</b></label><input id="last" name="last" autocapitalize="words" autocomplete="off" enterkeyhint="next" maxlength="80"></div>
+        <div><label for="first">First name</label><input id="first" name="first" autocapitalize="words" autocomplete="off" enterkeyhint="next" maxlength="80"></div>
+        <div><label for="last">Last name</label><input id="last" name="last" autocapitalize="words" autocomplete="off" enterkeyhint="next" maxlength="80"></div>
       </div>
       <div class="row">
-        <div><label for="phone">Mobile phone <b>*</b></label><input id="phone" name="phone" type="tel" inputmode="tel" autocomplete="off" enterkeyhint="next" maxlength="22" placeholder="(212) 555-0147"></div>
+        <div><label for="phone">Mobile phone</label><input id="phone" name="phone" type="tel" inputmode="tel" autocomplete="off" enterkeyhint="next" maxlength="22" placeholder="(212) 555-0147"></div>
         <div><label for="email">Email</label><input id="email" name="email" type="email" inputmode="email" autocapitalize="none" autocomplete="off" spellcheck="false" enterkeyhint="next" maxlength="120"></div>
       </div>
       <div class="ac">
-        <label for="addr">Street address <b>*</b></label>
+        <label for="addr">Street address</label>
         <input id="addr" name="addr" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="sug" autocomplete="off" autocorrect="off" spellcheck="false" enterkeyhint="next" maxlength="150" placeholder="Start typing, e.g. 15 W 47th St">
         <ul id="sug" class="list" role="listbox" hidden></ul>
       </div>
       <div class="row3">
         <div><label for="unit">Apt / Suite</label><input id="unit" name="unit" autocomplete="off" enterkeyhint="next" maxlength="60"></div>
-        <div><label for="zip">ZIP <b>*</b></label><input id="zip" name="zip" inputmode="numeric" autocomplete="off" enterkeyhint="next" maxlength="10"></div>
-        <div><label for="state">State <b>*</b></label><input id="state" name="state" autocapitalize="characters" autocomplete="off" enterkeyhint="next" maxlength="40"></div>
+        <div><label for="zip">ZIP</label><input id="zip" name="zip" inputmode="numeric" autocomplete="off" enterkeyhint="next" maxlength="10"></div>
+        <div><label for="state">State</label><input id="state" name="state" autocapitalize="characters" autocomplete="off" enterkeyhint="next" maxlength="40"></div>
       </div>
-      <div><label for="city">City <b>*</b></label><input id="city" name="city" autocapitalize="words" autocomplete="off" enterkeyhint="done" maxlength="80"></div>
+      <div><label for="city">City</label><input id="city" name="city" autocapitalize="words" autocomplete="off" enterkeyhint="done" maxlength="80"></div>
       <p class="hint hide" id="hint"></p>
       <button id="go" type="submit">SAVE MY DETAILS</button>
       <p class="err hide" id="err" role="alert"></p>
@@ -222,20 +222,10 @@ order.forEach((k, i) => F[k].addEventListener("keydown", e => {
 
 /* ---------- validation + save ---------- */
 function check() {
-  const bad = [];
-  const req = {first:"first name", last:"last name", addr:"street address", city:"city", state:"state", zip:"ZIP"};
-  for (const k in req) if (!F[k].value.trim()) bad.push([k, req[k]]);
-  const digits = F.phone.value.replace(/\D/g, "");
-  const intl = F.phone.value.trim().startsWith("+") && !F.phone.value.trim().startsWith("+1");
-  if (intl ? digits.length < 8 : digits.length !== 10) bad.push(["phone", "a valid phone number"]);
-  const em = F.email.value.trim();
-  if (em && !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(em)) bad.push(["email", "a valid email"]);
-  if (F.zip.value.trim() && !/^\d{5}(-?\d{4})?$/.test(F.zip.value.trim())) bad.push(["zip", "a 5-digit ZIP"]);
   Object.values(F).forEach(x => x.removeAttribute("aria-invalid"));
-  bad.forEach(([k]) => F[k].setAttribute("aria-invalid", "true"));
-  if (bad.length) {
-    hintEl.textContent = "Please enter " + bad.map(b => b[1]).join(", ") + ".";
-    hintEl.classList.remove("hide"); F[bad[0][0]].focus(); return false;
+  if (!Object.values(F).some(x => x.value.trim())) {
+    hintEl.textContent = "Please fill in at least one field.";
+    hintEl.classList.remove("hide"); F.first.focus(); return false;
   }
   hintEl.classList.add("hide"); return true;
 }
@@ -247,12 +237,12 @@ $("f").addEventListener("submit", async e => {
   errEl.classList.add("hide");
   if (!check()) return;
   const em = F.email.value.trim().toLowerCase();
+  const v = x => x.value.trim().replace(/\s+/g, " ") || null;
   const row = {
-    first_name: cap(F.first.value), last_name: cap(F.last.value),
-    phone: F.phone.value.trim(), email: em || null,
-    address_line1: F.addr.value.trim().replace(/\s+/g, " "),
-    address_line2: F.unit.value.trim() || null,
-    city: F.city.value.trim(), state: F.state.value.trim().toUpperCase(), zip: F.zip.value.trim(),
+    first_name: v(F.first) && cap(F.first.value), last_name: v(F.last) && cap(F.last.value),
+    phone: v(F.phone), email: em || null,
+    address_line1: v(F.addr), address_line2: v(F.unit),
+    city: v(F.city), state: v(F.state) && v(F.state).toUpperCase(), zip: v(F.zip),
     place_id: placeId
   };
   go.disabled = true; go.textContent = "SAVING…";
@@ -263,7 +253,7 @@ $("f").addEventListener("submit", async e => {
       body: JSON.stringify(row)
     });
     if (!r.ok) throw new Error(String(r.status));
-    $("thanks").textContent = "Thank you, " + row.first_name;
+    $("thanks").textContent = row.first_name ? "Thank you, " + row.first_name : "Thank you";
     $("formView").classList.add("hide"); $("doneView").classList.add("on");
     document.activeElement && document.activeElement.blur();
     setTimeout(reset, CONFIG.RESET_AFTER_SAVE_MS);
